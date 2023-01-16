@@ -1,0 +1,13 @@
+# Default values for postgres using Zelando postgres-operator.
+#https://github.com/zalando/postgres-operator/blob/master/charts/postgres-operator/values.yaml
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  registry: registry.opensource.zalan.do
+  repository: acid/spilo-14
+  tag: 2.1-p6
+
+numberOfInstances: 2
+
+postgresqldbname: postgresdb

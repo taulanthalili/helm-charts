@@ -1,0 +1,69 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  dockerImage: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+  teamId: {{ .Values.postgresqldbname }}
+  numberOfInstances: {{ .Values.numberOfInstances }}
+  users:  # Application/Robot users
+    {{ .Values.postgresqldbname }}:
+      - superuser
+      - createdb
+  enableMasterLoadBalancer: false
+  enableReplicaLoadBalancer: false
+  enableConnectionPooler: false # enable/disable connection pooler deployment
+  enableReplicaConnectionPooler: false # set to enable connectionPooler for replica service
+  databases:
+    registry: {{ .Values.postgresqldbname }}
+    notary_server: {{ .Values.postgresqldbname }}
+    notary_signer: {{ .Values.postgresqldbname }}
+  postgresql:
+    version: "14"
+    parameters:  # Expert section
+      shared_buffers: "32MB"
+      max_connections: "10"
+      log_statement: "all"
+
+  volume:
+    size: 1Gi
+
+  enableShmVolume: true
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 100Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
+
+  patroni:
+    initdb:
+      encoding: "UTF8"
+      locale: "en_US.UTF-8"
+      data-checksums: "true"
+    pg_hba:
+      - local all all md5
+      - host replication standby all md5
+      - host all all all md5
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    synchronous_mode: false
+    synchronous_mode_strict: false
+    synchronous_node_count: 1
+    maximum_lag_on_failover: 33554432
+
+  initContainers:
+    - name: date
+      image: busybox
+      command: [ "/bin/date" ]
+  # Custom TLS certificate. Disabled unless tls.secretName has a value.
+  tls:
+    secretName: ""  # should correspond to a Kubernetes Secret resource to load
+    certificateFile: "tls.crt"
+    privateKeyFile: "tls.key"
+    caFile: ""  # optionally configure Postgres with a CA certificate
+    caSecretName: "" # optionally the ca.crt can come from this secret instead.
